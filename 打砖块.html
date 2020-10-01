@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打砖块游戏（面向过程）</title>
+    <style>
+        * {
+            margin: 0%;
+            padding: 0;
+        }
+
+        #container {
+            width: 500px;
+            height: 500px;
+            border: 1px solid black;
+            margin: 200px auto 0;
+            position: relative;
+
+        }
+
+        #bat {
+            width: 100px;
+            height: 25px;
+            position: absolute;
+            left: 200px;
+            top: 475px;
+            background-color: rgb(62, 62, 187);
+            box-sizing: border-box;
+            border: 1px solid black;
+            /* border-radius: 5px; */
+        }
+
+        #ball {
+            /* display:none; */
+            width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            background-color: red;
+            position: absolute;
+            box-sizing: border-box;
+            left: 240px;
+            top: 455px;
+        }
+    </style>
+    <script>
+        //批量设置新增节点的css样式
+        function setStyle(node, styleObj) {
+            for (var attr in styleObj) {
+                node.style[attr] = styleObj[attr];
+            }
+
+        }
+        function radomColor() {
+            return `rgb(${parseInt(Math.random() * 255)},${parseInt(Math.random() * 255)},${parseInt(Math.random() * 255)})`;
+        }
+        //新建num个砖块，并为他们设置好css样式
+        function createBlocks(num) {
+            let blocks = document.getElementById("blocks");
+            for (var i = 0; i < num; i++) {
+                var new_div = document.createElement("div");
+                setStyle(new_div, {
+                    width: "100px",
+                    height: "25px",
+                    float: "left",
+                    margin: "auto",
+                    background: radomColor(),
+                    boxSizing: "border-box",
+                    border: "1px solid black",
+                })
+                new_div.setAttribute("class", "block")
+                blocks.appendChild(new_div);
+            }
+
+        }
+        //修改各个砖块的位置属性，使得他们在被撞击后不会改变位置
+        //注意 node.style.position = "absolute"; 这句话不能放在这个循环内，因为若这句话被执行后会脱离图层，使得后一个div的位置发生改变，依次类推，所有div会堆到一起。
+        //故这句话需要独自放在一个循环中执行。
+        function changeDiv(node) {
+            // node.style.position = "absolute";
+            node.style.left = node.offsetLeft + "px";
+            node.style.top = node.offsetTop + "px";
+            // console.log(node.style.left + " " + node.style.top);
+
+        }
+        //设置节点的拖动函数
+        function drag(node) {
+            let limit = document.getElementById("container").offsetLeft + 1;
+            node.onmousedown = function (ev) {
+                this.offsetX = ev.clientX - this.offsetLeft - limit;
+                this.onmousemove = function (ev) {
+                    this.style.left = ev.clientX - this.offsetX - limit + "px";
+                    if (this.offsetLeft <= 0) {
+                        this.style.left = 0 + 'px';
+                    }
+                    if (this.offsetLeft >= 400) {
+                        this.style.left = 400 + "px";
+                    }
+                };
+            }
+            node.onmouseup = function () {
+                this.onmousemove = null;
+            }
+        }
+        //小球的运动
+        function startMove(node) {
+            clearInterval(timer);
+            let speedX = parseInt(Math.random()*6)+3, speedY = parseInt(Math.random()*7)+4;
+            var timer = setInterval(function () {
+                //检查小球是否与砖块相撞；
+                let blocks = document.getElementsByClassName("block");
+                let ball=document.getElementById("ball");
+                for (let i = 0; i < blocks.length; i++) {
+                    if (knock(ball, blocks[i])) {
+                        speedY=-speedY;
+                        blocks[i].style.display = "none";
+                        break;
+                    }
+                }
+                //检测小球是否与拍照碰撞
+                if(knock(ball,bat))
+                {
+                    speedY=-speedY;
+                }
+                //左右边界，小球向反方向运动
+                if (node.offsetLeft + node.offsetWidth >= 500 || node.offsetLeft <= 0) {
+                    speedX = -speedX;
+                }
+                //上下边界
+                if (node.offsetTop <= 0 || node.offsetTop + node.offsetWidth >= 500) {
+                    speedY = -speedY;
+                }
+                //游戏结束的判断
+                if(node.offsetTop+node.offsetHeight>= 500)
+                {
+                    clearInterval(timer);
+                    alert("游戏失败！");
+                    
+                    window.location.reload();
+                }
+                node.style.left = node.offsetLeft + speedX + "px";
+                node.style.top = node.offsetTop + speedY + "px";
+
+            }, 30);
+        }
+        //碰撞检测
+        //有四种情况：
+        //1，当节点1的左侧比节点2的右侧大
+        //2，当节点1的右侧比节点2的左侧小
+        //3，当节点1的上侧比节点2的下侧大
+        //4，当节点1的下侧比节点2的上侧小
+        function knock(node1, node2) {
+            if (node1.offsetLeft > node2.offsetLeft + node2.offsetWidth) { return false; }
+            if (node1.offsetLeft + node1.offsetWidth < node2.offsetLeft) { return false; }
+            if (node1.offsetTop > node2.offsetTop + node2.offsetHeight) { return false; }
+            if (node1.offsetTop + node1.offsetHeight < node2.offsetTop) { return false; }
+            return true;
+        }
+        window.onload = function () {
+            let container = document.getElementById("container");
+            let bat = document.getElementById("bat");
+            let ball = document.getElementById("ball");
+            createBlocks(30);
+            drag(bat);
+            var blocks = document.getElementsByClassName("block");
+            for (let i = 0; i < blocks.length; i++) {
+                changeDiv(blocks[i]);
+            }
+            for (let i = 0; i < blocks.length; i++) {
+                blocks[i].style.position="absolute";
+            }
+            startMove(ball);
+
+        }
+
+    </script>
+</head>
+
+<body>
+    <div id="container">
+        <div id="blocks"></div>
+        <div id="ball"></div>
+        <div id="bat"></div>
+    </div>
+</body>
+
+</html>
